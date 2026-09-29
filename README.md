@@ -1,66 +1,77 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Product Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An efficient Laravel-based Product Management System supporting category and supplier relational management, complete CRUD operations, and advanced filtering capabilities.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* **Product Management**: Create, read, edit, and delete products (supports Soft Deletes).
+* **Filter & Search**: Quickly filter and search products by category, supplier, SKU or Price Range.
+* **Database Relationships**:
+  * **Category Association**: Each product belongs to one category (1-to-Many). Deleting a category cascades and deletes all associated products (`Cascade Delete`).
+  * **Supplier Association**: Each product belongs to one supplier (1-to-Many). Deleting a supplier sets the product's supplier ID to null (`Null On Delete`).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Test Credentials
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Use the following credentials to log in for local development and testing:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+| Email | Password | Role |
+| :--- | :--- | :--- |
+| `test@example.com` | `test` | Admin / Test Account |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Database Schema
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The system consists of three core tables: `categories`, `suppliers`, and `products`.
 
-### Premium Partners
+### 1. Categories (`categories`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `bigint` | Primary Key | Auto Increment |
+| `name` | `varchar` | Category Name | Required |
+| `description` | `text` | Description | Nullable |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 2. Suppliers (`suppliers`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `bigint` | Primary Key | Auto Increment |
+| `name` | `varchar` | Supplier Name | Required |
+| `email` | `varchar` | Email Address | Unique |
+| `phone` | `varchar` | Phone Number | Nullable |
+| `address` | `text` | Full Address | Nullable |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
 
-## Contributing
+### 3. Products (`products`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `bigint` | Primary Key | Auto Increment |
+| `category_id` | `bigint` | Foreign Key (Category) | Foreign Key (`Cascade Delete`) |
+| `supplier_id` | `bigint` | Foreign Key (Supplier) | Foreign Key (`Null On Delete`, Nullable) |
+| `name` | `varchar` | Product Name | Required |
+| `sku` | `varchar` | Stock Keeping Unit | Unique |
+| `price` | `decimal(10,2)` | Price | Required |
+| `description` | `text` | Description | Nullable |
+| `deleted_at` | `timestamp` | Soft Delete Flag | Soft Deletes |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Setup & Installation
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 1. Requirements
+* PHP >= 8.1
+* Composer
+* MySQL / PostgreSQL
+* Node.js & NPM
 
-## Security Vulnerabilities
+### 2. Local Installation Steps
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. **Clone the repository and enter directory:**
+   ```bash
+   git clone <repository-url>
+   cd <project-folder>

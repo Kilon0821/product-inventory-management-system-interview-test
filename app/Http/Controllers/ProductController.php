@@ -168,6 +168,9 @@ class ProductController extends Controller
 
         try {
             $product = DB::transaction(function () use ($product, $validated) {
+                $product = Product::whereKey($product->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
                 $product->update($validated);
                 return $product->fresh(['category', 'supplier']);
             });
@@ -289,7 +292,7 @@ class ProductController extends Controller
                     'product_id' => $product->id,
                     'quantity'   => $addQty,
                     'action'       => 'inbound',
-                    'created_at' => now(),
+                    'create_at' => now(),
                 ]);
             }
 
@@ -390,6 +393,10 @@ class ProductController extends Controller
         // 4. transaction to update stock and create a new stock
         try {
             DB::transaction(function () use ($product, $newStock, $quantityChange, $actionType) {
+                $product = Product::whereKey($product->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+            
                 // update stock quantity
                 $product->update([
                     'stock_quantity' => $newStock

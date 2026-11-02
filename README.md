@@ -107,6 +107,7 @@ Use the following credentials to log in for local development and testing:
    cd <project-folder>
 
 2. **Install dependencies:**
+   ```bash
    composer install
    setup .env file with your database credentials
    php artisan key:generate

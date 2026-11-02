@@ -11,6 +11,9 @@ An efficient Laravel-based Product Management System supporting category and sup
 * **Database Relationships**:
   * **Category Association**: Each product belongs to one category (1-to-Many). Deleting a category cascades and deletes all associated products (`Cascade Delete`).
   * **Supplier Association**: Each product belongs to one supplier (1-to-Many). Deleting a supplier sets the product's supplier ID to null (`Null On Delete`).
+* **API Endpoints**: Access RESTful API endpoints for product management, including CRUD operations and filtering capabilities.
+* **Inbound Management**: Manage product inbound activities, including recording stock transactions.
+* **Stock Adjustment**: Track and adjust product stock levels with detailed transaction logs. Press the product List "Quantity" to update stock levels
 
 ---
 
@@ -25,8 +28,6 @@ Use the following credentials to log in for local development and testing:
 ---
 
 ## Database Schema
-
-The system consists of three core tables: `categories`, `suppliers`, and `products`.
 
 ### 1. Categories (`categories`)
 | Field | Type | Description | Constraints / Default |
@@ -54,9 +55,38 @@ The system consists of three core tables: `categories`, `suppliers`, and `produc
 | `supplier_id` | `bigint` | Foreign Key (Supplier) | Foreign Key (`Null On Delete`, Nullable) |
 | `name` | `varchar` | Product Name | Required |
 | `sku` | `varchar` | Stock Keeping Unit | Unique |
+| `stock_quantity` | `integer` | Stock Quantity | Default 0 |
 | `price` | `decimal(10,2)` | Price | Required |
 | `description` | `text` | Description | Nullable |
 | `deleted_at` | `timestamp` | Soft Delete Flag | Soft Deletes |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
+
+### 4. Stock Transactions (`stock_transactions`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `bigint` | Primary Key | Auto Increment |
+| `product_id` | `integer` | Foreign Key (Products) | Required |
+| `quantity` | `integer` | Transaction Quantity | Required |
+| `type` | `string` | Transaction Type (e.g., "in", "out") | Nullable |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
+
+### 5. Orders (`orders`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `bigint` | Primary Key | Auto Increment |
+| `user_id` | `integer` | Foreign Key (Users) | Required |
+| `product_id` | `integer` | Foreign Key (Products) | Required |
+| `quantity` | `integer` | Order Quantity | Required |
+| `price` | `decimal(10,2)` | Price | Required |
+| `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
+
+### 6. Order Products (`orders_products`)
+| Field | Type | Description | Constraints / Default |
+| :--- | :--- | :--- | :--- |
+| `order_id` | `integer` | Foreign Key (Orders) | Required |
+| `product_id` | `integer` | Foreign Key (Products) | Required |
+| `quantity` | `integer` | Order Product Quantity | Required |
+| `price` | `decimal(10,2)` | Price | Required |
 | `created_at` / `updated_at` | `timestamp` | Timestamps | Nullable |
 
 ---
@@ -75,3 +105,12 @@ The system consists of three core tables: `categories`, `suppliers`, and `produc
    ```bash
    git clone <repository-url>
    cd <project-folder>
+
+2. **Install dependencies:**
+   composer install
+   setup .env file with your database credentials
+   php artisan key:generate
+   php artisan migrate
+   php artisan db:seed
+   php artisan storage:link
+   php artisan serve

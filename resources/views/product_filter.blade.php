@@ -35,7 +35,7 @@
                     class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-amber-700 border border-amber-300 text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition gap-2"
                 >
                     <i class="fa-solid fa-arrow-up-long text-xs"></i>
-                    <span>Outbound</span>
+                    <span>Outbound (Coming Soon)</span>
                 </button>
 
                 <!-- Add Product Button -->
@@ -259,11 +259,6 @@
                     <div>
                         <label for="modal_price" class="block text-sm font-medium text-gray-700 mb-1">Price ($) *</label>
                         <input type="number" step="0.01" id="modal_price" name="price" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-
-                    <div class="hidden">
-                        <label for="modal_stock_quantity" class="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
-                        <input type="number" id="modal_stock_quantity" name="stock_quantity" min="0" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
 
                     <div>
@@ -666,7 +661,6 @@
                     document.getElementById('modal_name').value = product.name || '';
                     document.getElementById('modal_sku').value = product.sku || '';
                     document.getElementById('modal_price').value = product.price || '';
-                    document.getElementById('modal_stock_quantity').value = product.stock_quantity ?? 0;
                     document.getElementById('modal_category_id').value = product.category_id || '';
                     document.getElementById('modal_supplier_id').value = product.supplier_id || '';
                     document.getElementById('modal_description').value = product.description || '';

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Supplier;
+use App\Models\StockTransaction;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ use Exception;
 class ProductController extends Controller
 {
     /**
-     * 1. 只负责渲染初始页面（加载分类和供应商数据到侧边栏）
+     * 1. load product filter page (categories, suppliers)
      */
     public function index()
     {
@@ -31,7 +32,7 @@ class ProductController extends Controller
     }
 
     /**
-     * 2. 只影响 Table 的 AJAX 接口（搜索、筛选、排序、分页）
+     * 2. Ajax call to fetch products (Search,filter,sort,pagination)
      */
     public function getProducts(Request $request)
     {
@@ -84,10 +85,10 @@ class ProductController extends Controller
                     break;
             }
 
-            // 只获取 Product 数据及分页信息
+            // make pagination
             $products = $query->paginate(9)->withQueryString();
 
-            // 纯粹返回 JSON 数据供表格渲染
+            // json response
             return response()->json([
                 'success' => true,
                 'data'    => $products
@@ -205,6 +206,214 @@ class ProductController extends Controller
                 'success' => false,
                 'message' => 'delete fail, please try again',
                 'error'   => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product details by SKU (POST request)
+     */
+    public function getProductBySku(Request $request)
+    {
+        try {
+            // 1. validate the request data
+            $validated = $request->validate([
+                'sku' => 'required|string|max:100',
+            ]);
+
+            // 2. get the product by SKU
+            $product = Product::with(['category', 'supplier'])
+                ->where('sku', $validated['sku'])
+                ->first();
+
+            // 3. check if the product exists
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found with the given SKU'
+                ], 404);
+            }
+
+            // 4. respond with the product details
+            return response()->json([
+                'success' => true,
+                'data'    => $product
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // get validation error and return response
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $e->errors()
+            ], 422);
+
+        } catch (Exception $e) {
+            // get error message and return response
+            Log::error('Product getProductBySku error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Get product details fail, please try again',
+                'error'   => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function inbound(Request $request)
+    {
+        // 1. validate request data
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        // use transaction to ensure data integrity
+        DB::beginTransaction();
+        try {
+            $items = $request->input('items');
+
+            foreach ($items as $item) {
+                $productId = $item['product_id'];
+                $addQty = (int) $item['quantity'];
+
+                // search product by id
+                $product = Product::findOrFail($productId);
+
+                // 2. update quantity
+                $product->increment('stock_quantity', $addQty);
+
+                // 3. create stock transaction record
+                StockTransaction::create([
+                    'product_id' => $product->id,
+                    'quantity'   => $addQty,
+                    'action'       => 'inbound',
+                    'created_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inbound processed successfully!'
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Inbound transaction error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Inbound failed, please try again.',
+                'error'   => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function getProductsStockTransaction(Request $request)
+    {
+        $productId = $request->input('product_id');
+
+        if (!$productId) {
+            return response()->json(['error' => 'Product ID is required'], 400);
+        }
+
+        $perPage = 10;
+        
+        $transactions = StockTransaction::where('product_id', $productId)
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
+
+        // format the data
+        $transformedData = collect($transactions->items())->map(function ($tx) {
+            return [
+                'id' => $tx->id,
+                'action' => $tx->action,
+                'quantity' => $tx->quantity,
+                'create_at' => $tx->create_at ? date('Y-m-d H:i:s', strtotime($tx->create_at)) : null,
+            ];
+        });
+
+        return response()->json([
+            'data' => $transformedData,
+            'current_page' => $transactions->currentPage(),
+            'last_page' => $transactions->lastPage(),
+            'total' => $transactions->total(),
+        ]);
+    }
+
+    public function updateStock(Request $request)
+    {
+        // 1. validate
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'value' => 'required|string', 
+        ]);
+
+        $productId = $request->input('product_id');
+        $inputVal = trim($request->input('value'));
+
+        // 2. search product
+        $product = Product::findOrFail($productId);
+        $currentStock = $product->stock_quantity ?? 0;
+
+        $quantityChange = 0;
+        $actionType = 'Adjustment'; 
+
+        // 3. check input value and calculate new stock quantity
+        if (str_starts_with($inputVal, '+')) {
+            $quantityChange = (int) substr($inputVal, 1);
+            $newStock = $currentStock + $quantityChange;
+            $actionType = 'Restock / Increase';
+        } elseif (str_starts_with($inputVal, '-')) {
+            $quantityChange = -(int) substr($inputVal, 1);
+            $newStock = $currentStock + $quantityChange;
+            $actionType = 'Reduce / Outbound';
+        } else {
+            // if input is a number, set stock to that number
+            $targetStock = (int) $inputVal;
+            $quantityChange = $targetStock - $currentStock;
+            $newStock = $targetStock;
+            $actionType = 'Manual Set';
+        }
+
+        // let 's check if the new stock quantity is valid
+        if ($newStock < 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock quantity cannot be less than 0.'
+            ], 422);
+        }
+
+        // 4. transaction to update stock and create a new stock
+        try {
+            DB::transaction(function () use ($product, $newStock, $quantityChange, $actionType) {
+                // update stock quantity
+                $product->update([
+                    'stock_quantity' => $newStock
+                ]);
+
+                // insert a new stock transaction record
+                StockTransaction::create([
+                    'product_id' => $product->id,
+                    'quantity' => $quantityChange,
+                    'action' => $actionType,
+                    'create_at' => now(),
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock updated successfully.',
+                'new_stock' => $newStock
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update stock: ' . $e->getMessage()
             ], 500);
         }
     }

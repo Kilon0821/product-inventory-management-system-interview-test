@@ -19,5 +19,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::resource('products', ProductController::class);
+    Route::post('/get_product_by_sku', [ProductController::class, 'getProductBySku'])->name('getProductBySku');
     Route::get('/get_products', [ProductController::class, 'getProducts'])->name('getProducts');
+    Route::post('/inbound', [ProductController::class, 'inbound']);
+    Route::get('/get_product_stock_transaction', [ProductController::class, 'getProductsStockTransaction'])->name('getProductsStockTransaction');
+    Route::post('/products/update-stock', [ProductController::class, 'updateStock'])->name('products.updateStock');
 });

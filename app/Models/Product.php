@@ -16,6 +16,7 @@ class Product extends Model
         'supplier_id',
         'name',
         'sku',
+        'stock_quantity',
         'price',
         'description',
     ];

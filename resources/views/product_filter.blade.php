@@ -12,19 +12,42 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- Header with Add Product Button -->
+        <!-- Header with Inbound, Outbound & Add Product Buttons -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
             <h1 class="text-3xl font-bold text-gray-900">All Products</h1>
-            <button 
-                type="button" 
-                onclick="openProductModal('create')"
-                class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition gap-2"
-            >
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Add Product</span>
-            </button>
+            <div class="flex items-center flex-wrap gap-2.5">
+                <!-- Inbound Button -->
+                <button 
+                    type="button" 
+                    onclick="openInboundModal()"
+                    class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-emerald-700 border border-emerald-300 text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition gap-2"
+                >
+                    <i class="fa-solid fa-arrow-down-long text-xs"></i>
+                    <span>Inbound</span>
+                </button>
+
+                <!-- Outbound Button -->
+                <button 
+                    type="button" 
+                    onclick="openOutboundModal()"
+                    class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-amber-700 border border-amber-300 text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition gap-2"
+                >
+                    <i class="fa-solid fa-arrow-up-long text-xs"></i>
+                    <span>Outbound</span>
+                </button>
+
+                <!-- Add Product Button -->
+                <button 
+                    type="button" 
+                    onclick="openProductModal('create')"
+                    class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-sm transition gap-2"
+                >
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add Product</span>
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -72,7 +95,7 @@
                     <hr class="my-6 border-gray-200">
 
                     <!-- Suppliers Filter -->
-                    @if(isset($suppliers) &&$suppliers->count() > 0)
+                    @if(isset($suppliers) && $suppliers->count() > 0)
                         <div class="mb-6">
                             <h3 class="text-sm font-semibold text-gray-700 mb-3">Suppliers</h3>
                             <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -177,6 +200,7 @@
                                     <th scope="col" class="py-3.5 px-4">SKU</th>
                                     <th scope="col" class="py-3.5 px-4">Category</th>
                                     <th scope="col" class="py-3.5 px-4">Supplier</th>
+                                    <th scope="col" class="py-3.5 px-4 text-center">Quantity</th>
                                     <th scope="col" class="py-3.5 px-4 text-right">Price</th>
                                     <th scope="col" class="py-3.5 px-4 text-center">Actions</th>
                                 </tr>
@@ -238,6 +262,11 @@
                     </div>
 
                     <div>
+                        <label for="modal_stock_quantity" class="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
+                        <input type="number" id="modal_stock_quantity" name="stock_quantity" min="0" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+
+                    <div>
                         <label for="modal_category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
                         <select id="modal_category_id" name="category_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
                             <option value="">Select Category</option>
@@ -273,6 +302,117 @@
         </div>
     </div>
 
+    <!-- Inbound Modal -->
+    <div id="inboundModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full overflow-hidden transform transition-all">
+            
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-900">Product Inbound (入库)</h3>
+                <button type="button" onclick="closeInboundModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <!-- scan sku -->
+                <div>
+                    <label for="inbound_sku_input" class="block text-sm font-medium text-gray-700 mb-1">Scan / Enter Product SKU</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="inbound_sku_input" placeholder="Type SKU and press Enter..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" onkeydown="handleInboundSkuKeydown(event)">
+                        <button type="button" onclick="addInboundItemBySku()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition">Add</button>
+                    </div>
+                </div>
+
+                <!-- inbound product list -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
+                                <th class="py-2.5 px-3">Product Name</th>
+                                <th class="py-2.5 px-3">SKU</th>
+                                <th class="py-2.5 px-3 w-32 text-center">Inbound Qty</th>
+                                <th class="py-2.5 px-3 w-16 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inboundItemsTableBody" class="divide-y divide-gray-200 text-sm text-gray-700">
+                            <!-- content -->
+                        </tbody>
+                    </table>
+                    <div id="inboundEmptyState" class="text-center py-6 text-sm text-gray-400">
+                        No products added to inbound list yet.
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end px-6 py-4 bg-gray-50 border-t border-gray-100 space-x-3">
+                <button type="button" onclick="closeInboundModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onclick="submitInbound()" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">Confirm Inbound</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- stock transaction Modal -->
+    <div id="stockTransactionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-xl mx-4 overflow-hidden flex flex-col max-h-[85vh]">
+            <!-- Modal 头部 -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Stock Transactions</h3>
+                    <p id="modalProductName" class="text-xs text-gray-500 mt-0.5">Product Name</p>
+                </div>
+                <button type="button" onclick="closeStockTransactionModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal 内容区 -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
+                        <thead class="bg-gray-50 text-gray-700 font-semibold text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="py-3 px-4">Date / Time</th>
+                                <th class="py-3 px-4">Action</th>
+                                <th class="py-3 px-4 text-center">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTransactionTableBody" class="divide-y divide-gray-200 bg-white text-gray-600">
+                            <!-- 动态填充数据 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 加载中或空状态提示 -->
+                <div id="stockTransactionLoading" class="text-center py-8 text-gray-400 text-sm hidden">
+                    Loading transactions...
+                </div>
+                <div id="stockTransactionEmpty" class="text-center py-8 text-gray-400 text-sm hidden">
+                    No stock transactions found.
+                </div>
+
+                <!-- 分页控制栏 -->
+                <div id="stockTransactionPagination" class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 hidden">
+                    <span id="paginationInfo" class="text-xs text-gray-500">Showing page 1 of 1</span>
+                    <div class="space-x-2">
+                        <button type="button" id="prevPageBtn" onclick="changeStockPage(-1)" class="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <button type="button" id="nextPageBtn" onclick="changeStockPage(1)" class="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal 底部 -->
+            <div class="flex justify-end px-6 py-3 bg-gray-50 border-t border-gray-100">
+                <button type="button" onclick="closeStockTransactionModal()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
 <script>
     let currentMode = 'create';
     let currentPage = 1;
@@ -281,6 +421,19 @@
     document.addEventListener('DOMContentLoaded', function () {
         loadProducts(1);
     });
+
+    // 预留的 Inbound 与 Outbound 按钮点击事件处理函数
+    function openInboundModal() {
+        // 在这里编写打开入库弹窗或跳转的逻辑
+        console.log('Open Inbound action triggered');
+        alert('Inbound action clicked');
+    }
+
+    function openOutboundModal() {
+        // 在这里编写打开出库弹窗或跳转的逻辑
+        console.log('Open Outbound action triggered');
+        alert('Outbound action coming soon');
+    }
 
     /**
      * 核心函数：仅请求后端 getProducts API 并刷新 Table 区域
@@ -348,6 +501,13 @@
             const supplierName = product.supplier ? product.supplier.name : '-';
             const description = product.description ? `<p class="text-xs text-gray-500 font-normal line-clamp-1 mt-0.5">${escapeHtml(product.description)}</p>` : '';
             const price = parseFloat(product.price).toFixed(2);
+            
+            // 库存数量格式化与低库存提示样式
+            const stockQty = product.stock_quantity ?? 0;
+            let stockBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">${stockQty}</span>`;
+            if (stockQty <= 0) {
+                stockBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600">Out of stock</span>`;
+            }
 
             const row = `
                 <tr class="hover:bg-gray-50/60 transition-colors">
@@ -366,11 +526,27 @@
                     <td class="py-4 px-4 whitespace-nowrap text-gray-600">
                         ${escapeHtml(supplierName)}
                     </td>
+                    <td class="py-4 px-4 text-center whitespace-nowrap cursor-pointer group" onclick="openAdjustStockModal(${product.id}, ${stockQty}, '${escapeHtml(product.name)}')">
+                        <div class="inline-flex items-center gap-1.5 transition group-hover:scale-105" title="Click to adjust stock">
+                            ${stockBadge}
+                            <i class="fa-solid fa-pen text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition"></i>
+                        </div>
+                    </td>
                     <td class="py-4 px-4 text-right font-bold text-gray-900 whitespace-nowrap">
                         $${price}
                     </td>
                     <td class="py-4 px-4 text-center whitespace-nowrap">
                         <div class="flex items-center justify-center space-x-2">
+                            <!-- 新增：查看库存变动按钮 -->
+                            <button 
+                                type="button" 
+                                onclick="openStockTransactionModal(${product.id}, '${escapeHtml(product.name)}')"
+                                class="p-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition" 
+                                title="View Stock Transactions"
+                            >
+                                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                            </button>
+                            <!-- 编辑按钮 -->
                             <button 
                                 type="button" 
                                 onclick="openProductModal('edit', ${product.id})"
@@ -379,6 +555,7 @@
                             >
                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
                             </button>
+                            <!-- 删除按钮 -->
                             <button 
                                 type="button" 
                                 onclick="deleteProduct('/products/${product.id}')"
@@ -489,6 +666,7 @@
                     document.getElementById('modal_name').value = product.name || '';
                     document.getElementById('modal_sku').value = product.sku || '';
                     document.getElementById('modal_price').value = product.price || '';
+                    document.getElementById('modal_stock_quantity').value = product.stock_quantity ?? 0;
                     document.getElementById('modal_category_id').value = product.category_id || '';
                     document.getElementById('modal_supplier_id').value = product.supplier_id || '';
                     document.getElementById('modal_description').value = product.description || '';
@@ -529,6 +707,315 @@
                 alert(data.message || 'Operation failed');
             }
         });
+    }
+</script>
+
+
+<script>
+    // inbound function
+    // 存储当前入库列表的数据结构: [{product_id, name, sku, quantity}]
+    let inboundItems = [];
+
+    // 打开入库弹窗
+    function openInboundModal() {
+        inboundItems = []; // 清空上一次的数据
+        renderInboundTable();
+        document.getElementById('inbound_sku_input').value = '';
+        document.getElementById('inboundModal').classList.remove('hidden');
+        setTimeout(() => {
+            document.getElementById('inbound_sku_input').focus();
+        }, 100);
+    }
+
+    // 关闭入库弹窗
+    function closeInboundModal() {
+        document.getElementById('inboundModal').classList.add('hidden');
+    }
+
+    // 监听 SKU 输入框的 Enter 键
+    function handleInboundSkuKeydown(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addInboundItemBySku();
+        }
+    }
+
+    // 根据 SKU 获取产品并加入列表（第一次加产品，之后同SKU只加 quantity）
+    function addInboundItemBySku() {
+        const skuInput = document.getElementById('inbound_sku_input');
+        const sku = skuInput.value.trim();
+
+        if (!sku) return;
+
+        // 请求后端通过 SKU 查找产品 (对应前面写好的 /get_product_by_sku 接口)
+        fetch('/get_product_by_sku', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ sku: sku })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.data) {
+                const product = data.data;
+                
+                // 检查列表中是否已经存在该产品
+                const existingItem = inboundItems.find(item => item.product_id === product.id);
+                
+                if (existingItem) {
+                    // 第二次之后：自动加 quantity (+1)
+                    existingItem.quantity += 1;
+                } else {
+                    // 第一次：添加产品进 list，默认数量为 1
+                    inboundItems.push({
+                        product_id: product.id,
+                        name: product.name,
+                        sku: product.sku,
+                        quantity: 1
+                    });
+                }
+
+                renderInboundTable();
+                skuInput.value = ''; // 清空输入框以便连续扫码/输入
+                skuInput.focus();
+            } else {
+                alert(data.message || 'Product not found with this SKU.');
+                skuInput.select();
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching product by SKU:', err);
+        });
+    }
+
+    // 更新列表中某一项的数量
+    function updateInboundQuantity(productId, newQty) {
+        const item = inboundItems.find(i => i.product_id === productId);
+        if (item) {
+            item.quantity = Math.max(1, parseInt(newQty) || 1);
+        }
+    }
+
+    // 从入库列表中移除一项
+    function removeInboundItem(productId) {
+        inboundItems = inboundItems.filter(i => i.product_id !== productId);
+        renderInboundTable();
+    }
+
+    // 渲染入库表格
+    function renderInboundTable() {
+        const tbody = document.getElementById('inboundItemsTableBody');
+        const emptyState = document.getElementById('inboundEmptyState');
+        tbody.innerHTML = '';
+
+        if (inboundItems.length === 0) {
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+
+        inboundItems.forEach(item => {
+            const row = `
+                <tr>
+                    <td class="py-2.5 px-3 font-medium text-gray-900">${escapeHtml(item.name)}</td>
+                    <td class="py-2.5 px-3 font-mono text-xs text-gray-600">${escapeHtml(item.sku)}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <input 
+                            type="number" 
+                            min="1" 
+                            value="${item.quantity}" 
+                            onchange="updateInboundQuantity(${item.product_id}, this.value)"
+                            class="w-20 text-center px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none"
+                        >
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <button type="button" onclick="removeInboundItem(${item.product_id})" class="text-red-500 hover:text-red-700 p-1">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // 提交入库数据到后端
+    function submitInbound() {
+        if (inboundItems.length === 0) {
+            alert('Please add at least one product for inbound.');
+            return;
+        }
+
+        // 组装提交的数据结构（可根据你的后端入库 API 格式进行微调）
+        const payload = {
+            items: inboundItems.map(item => ({
+                product_id: item.product_id,
+                quantity: item.quantity
+            }))
+        };
+
+        // 假设你的入库后端接口路由是 /inbound
+        fetch('/inbound', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Inbound processed successfully!');
+                closeInboundModal();
+                loadProducts(currentPage); // 刷新主表格数据
+            } else {
+                alert(data.message || 'Inbound failed.');
+            }
+        })
+        .catch(err => {
+            console.error('Inbound error:', err);
+            alert('An error occurred during inbound.');
+        });
+    }
+
+    // stock transaction function
+    let currentStockProductId = null;
+    let currentStockPage = 1;
+    let lastStockPage = 1;
+
+    // 打开库存变动 Modal
+    function openStockTransactionModal(productId, productName) {
+        currentStockProductId = productId;
+        currentStockPage = 1; 
+
+        const modal = document.getElementById('stockTransactionModal');
+        const nameEl = document.getElementById('modalProductName');
+
+        nameEl.textContent = productName;
+        modal.classList.remove('hidden');
+
+        fetchStockTransactions();
+    }
+
+    // 翻页触发函数
+    function changeStockPage(direction) {
+        const targetPage = currentStockPage + direction;
+        if (targetPage >= 1 && targetPage <= lastStockPage) {
+            currentStockPage = targetPage;
+            fetchStockTransactions();
+        }
+    }
+
+    // 请求后端数据的方法
+    function fetchStockTransactions() {
+        const tbody = document.getElementById('stockTransactionTableBody');
+        const loadingEl = document.getElementById('stockTransactionLoading');
+        const emptyEl = document.getElementById('stockTransactionEmpty');
+        const paginationEl = document.getElementById('stockTransactionPagination');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        const paginationInfo = document.getElementById('paginationInfo');
+
+        tbody.innerHTML = '';
+        loadingEl.classList.remove('hidden');
+        emptyEl.classList.add('hidden');
+        paginationEl.classList.add('hidden');
+
+        const url = `/get_product_stock_transaction?product_id=${currentStockProductId}&page=${currentStockPage}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(res => {
+                loadingEl.classList.add('hidden');
+                
+                const data = res.data;
+                currentStockPage = res.current_page;
+                lastStockPage = res.last_page;
+
+                if (!data || data.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+
+                // 渲染数据行
+                data.forEach(tx => {
+                    const isPositive = tx.quantity > 0;
+                    const qtyBadgeClass = isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600';
+                    const qtyPrefix = isPositive ? '+' : '';
+
+                    const tr = `
+                        <tr>
+                            <td class="py-3 px-4 whitespace-nowrap text-xs text-gray-500">${tx.create_at || '-'}</td>
+                            <td class="py-3 px-4 whitespace-nowrap font-medium text-gray-900">${escapeHtml(tx.action)}</td>
+                            <td class="py-3 px-4 whitespace-nowrap text-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold ${qtyBadgeClass}">
+                                    ${qtyPrefix}${tx.quantity}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', tr);
+                });
+
+                // 更新分页 UI 状态
+                paginationInfo.textContent = `Page ${currentStockPage} of ${lastStockPage} (Total: ${res.total})`;
+                prevBtn.disabled = currentStockPage <= 1;
+                nextBtn.disabled = currentStockPage >= lastStockPage;
+                paginationEl.classList.remove('hidden');
+            })
+            .catch(error => {
+                loadingEl.classList.add('hidden');
+                emptyEl.textContent = 'Failed to load transactions.';
+                emptyEl.classList.remove('hidden');
+                console.error('Error fetching stock transactions:', error);
+            });
+    }
+
+    // 关闭库存变动 Modal
+    function closeStockTransactionModal() {
+        const modal = document.getElementById('stockTransactionModal');
+        modal.classList.add('hidden');
+    }
+
+    // adjust stock quantity
+    function openAdjustStockModal(productId, currentStock, productName) {
+        // 这里你可以弹出一个简单的 Modal 或者使用 SweetAlert2 / Prompt
+        // 示例用原生的 prompt 快速实现调整，你也可以改成适配你项目的 Modal：
+        
+        let input = prompt(`Adjust stock for "${productName}"\nCurrent Stock: ${currentStock}\n\nEnter quantity change (e.g. +5 or -2) or new total:`, '');
+        
+        if (input !== null && input.trim() !== '') {
+            // 发送请求到后端更新库存
+            updateStock(productId, input);
+        }
+    }
+
+    // 提交更新到后端的示例函数
+    function updateStock(productId, value) {
+        fetch('/products/update-stock', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ product_id: productId, value: value })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 刷新表格或重新加载数据
+                location.reload(); 
+            } else {
+                alert(data.message || 'Failed to update stock');
+            }
+        })
+        .catch(err => console.error('Error:', err));
     }
 </script>
 </body>

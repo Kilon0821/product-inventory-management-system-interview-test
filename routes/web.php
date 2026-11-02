@@ -5,7 +5,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('products.index') : redirect()->route('login');
 });
 
 
